@@ -31,7 +31,7 @@ fn main() {
 
     let sub_uid_max: u64 = (u32::MAX - 1) as u64;
     let uid_min: u64 = 5000;
-    let uid_max: u64 = (sub_uid_max / (chunk_size * 2)) as u64;
+    let uid_max: u64 = sub_uid_max / (chunk_size * 2);
     let sub_uid_min: u64 = uid_max + 1;
 
     let num_uids = uid_max - uid_min;
@@ -46,7 +46,7 @@ fn main() {
     for uid in uid_min..=uid_max {
         // start at the bottom of the subuid range, allocating in blocks of CHUNK_SIZE ids.
         let min_subuid = sub_uid_min + ((uid - uid_min) * (chunk_size));
-        let max_subuid = min_subuid + (chunk_size / 2);
+        let max_subuid = min_subuid + chunk_size - 1;
 
         if max_subuid > sub_uid_max {
             panic!(
@@ -58,28 +58,15 @@ fn main() {
         // catch that first time
         if max_allocated_subuid == 0 {
             max_allocated_subuid = min_subuid;
+        } else if min_subuid <= max_allocated_subuid {
+            panic!("Overlap uid={uid} min_subuid={min_subuid} <= {max_allocated_subuid}");
         } else {
-            if min_subuid <= max_allocated_subuid {
-                panic!("Overlap uid={uid} min_subuid={min_subuid} <= {max_allocated_subuid}");
-            } else {
-                max_allocated_subuid = max_subuid + 1;
-            }
-        }
-
-        if uid % (num_uids / 15) == 0 {
-            println!(
-                "UID: {uid}/{uid_max} ({:.2}%)",
-                (uid as f64 / uid_max as f64) * 100.0
-            );
+            max_allocated_subuid = max_subuid;
         }
     }
     println!(
-        "UID: {uid_max}/{uid_max} ({:.2}%)",
-        (uid_max as f64 / uid_max as f64) * 100.0
-    );
-    println!(
         "All good! You get {} users with {} subuids each",
-        (uid_max - uid_min).to_formatted_string(&Locale::en),
+        (num_uids).to_formatted_string(&Locale::en),
         chunk_size
     );
 }
